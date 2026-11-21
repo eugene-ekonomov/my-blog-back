@@ -1,0 +1,4 @@
+<configuration>
+    <include resource="logback.xml"/>
+    <logger name="org.springframework.test.context.cache" level="DEBUG"/>
+</configuration>

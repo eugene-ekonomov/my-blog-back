@@ -23,9 +23,6 @@
             <column name="likes_count" type="INT" defaultValue="0">
                 <constraints nullable="false"/>
             </column>
-            <column name="comments_count" type="INT" defaultValue="0">
-                <constraints nullable="false"/>
-            </column>
             <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
         </createTable>
     </changeSet>
