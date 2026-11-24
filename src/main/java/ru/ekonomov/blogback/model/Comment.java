@@ -13,6 +13,10 @@ public class Comment {
     private String text;
     private ZonedDateTime createdAt;
 
+    public Comment(String text) {
+        this.text = text;
+    }
+
     public Comment(Long postId, String text) {
         this(null, postId, text, null);
     }
