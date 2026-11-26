@@ -8,12 +8,12 @@ import java.util.Optional;
 public interface CommentRepository {
     List<Comment> findAllByPostId(long postId);
 
-    Optional<Comment> findById(long id);
+    Optional<Comment> findById(long postId, long id);
 
     Comment create(long postId, Comment comment);
 
-    Optional<Comment> update(long id, Comment comment);
+    Optional<Comment> update(long postId, long id, Comment comment);
 
-    int deleteById(long id);
+    int deleteById(long postId, long id);
 
 }

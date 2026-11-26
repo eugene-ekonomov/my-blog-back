@@ -14,6 +14,7 @@ import ru.ekonomov.blogback.model.dto.CreateCommentRequest;
 import ru.ekonomov.blogback.model.dto.EditCommentRequest;
 import ru.ekonomov.blogback.repository.CommentRepository;
 
+import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -35,26 +36,37 @@ public class CommentServiceTest {
     @Test
     void createIfPostDoesntExist() {
         var request = new CreateCommentRequest("comment", 42L);
+        var fkViolation = new SQLException("violates foreign key constraint \"fk_comments_post\"", "23503");
         when(commentRepository.create(anyLong(), any(Comment.class)))
-                .thenThrow(new DataIntegrityViolationException("fk_comments_post"));
+                .thenThrow(new DataIntegrityViolationException("fk_comments_post", fkViolation));
 
         var ex = assertThrows(ResponseStatusException.class, () -> commentService.create(42L, request));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
-    void findByIdIfCommentDoesntExist() {
-        when(commentRepository.findById(anyLong())).thenReturn(Optional.empty());
+    void createRethrowsNonForeignKeyIntegrityViolation() {
+        var request = new CreateCommentRequest("comment", 42L);
+        var notNullViolation = new SQLException("null value in column \"text\"", "23502");
+        when(commentRepository.create(anyLong(), any(Comment.class)))
+                .thenThrow(new DataIntegrityViolationException("not null", notNullViolation));
 
-        var ex = assertThrows(ResponseStatusException.class, () -> commentService.findById(42L));
+        assertThrows(DataIntegrityViolationException.class, () -> commentService.create(42L, request));
+    }
+
+    @Test
+    void findByIdIfCommentDoesntExist() {
+        when(commentRepository.findById(anyLong(), anyLong())).thenReturn(Optional.empty());
+
+        var ex = assertThrows(ResponseStatusException.class, () -> commentService.findById(7L, 42L));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
     void deleteIfCommentDoesntExist() {
-        when(commentRepository.deleteById(anyLong())).thenReturn(0);
+        when(commentRepository.deleteById(anyLong(), anyLong())).thenReturn(0);
 
-        var ex = assertThrows(ResponseStatusException.class, () -> commentService.delete(42L));
+        var ex = assertThrows(ResponseStatusException.class, () -> commentService.delete(7L, 42L));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
@@ -75,25 +87,25 @@ public class CommentServiceTest {
     }
 
     @Test
-    void updateIgnoresPostId() {
-        var request = new EditCommentRequest(7L, "updated comment", 42L);
-        var updated = new Comment(7L, 42L, "updated comment", null);
-        when(commentRepository.update(eq(7L), any(Comment.class))).thenReturn(Optional.of(updated));
+    void updateUsesPathIds() {
+        var request = new EditCommentRequest(42L, "updated comment", 7L);
+        var updated = new Comment(42L, 7L, "updated comment", null);
+        when(commentRepository.update(eq(7L), eq(42L), any(Comment.class))).thenReturn(Optional.of(updated));
 
-        var response = commentService.update(7L, request);
+        var response = commentService.update(7L, 42L, request);
 
         var captor = ArgumentCaptor.forClass(Comment.class);
-        verify(commentRepository).update(eq(7L), captor.capture());
+        verify(commentRepository).update(eq(7L), eq(42L), captor.capture());
         assertNull(captor.getValue().getPostId());
         assertEquals("updated comment", response.text());
     }
 
     @Test
     void updateIfCommentDoesntExist() {
-        var comment = new EditCommentRequest(42L, "text", 10L);
-        when(commentRepository.update(anyLong(), any())).thenReturn(Optional.empty());
+        var comment = new EditCommentRequest(10L, "text", 42L);
+        when(commentRepository.update(anyLong(), anyLong(), any())).thenReturn(Optional.empty());
 
-        var ex = assertThrows(ResponseStatusException.class, () -> commentService.update(42L, comment));
+        var ex = assertThrows(ResponseStatusException.class, () -> commentService.update(10L, 42L, comment));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 }

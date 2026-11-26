@@ -38,14 +38,16 @@ public class JdbcTemplateCommentRepository implements CommentRepository {
     }
 
     @Override
-    public Optional<Comment> findById(long id) {
+    public Optional<Comment> findById(long postId, long id) {
         return jdbcTemplate.query("""
                         select id, post_id, text, created_at
                           from comments
                          where id = ?
+                           and post_id = ?
                         """,
                 COMMENT_ROW_MAPPER,
-                id).stream().findFirst();
+                id,
+                postId).stream().findFirst();
     }
 
     @Override
@@ -59,19 +61,27 @@ public class JdbcTemplateCommentRepository implements CommentRepository {
     }
 
     @Override
-    public Optional<Comment> update(long id, Comment comment) {
+    public Optional<Comment> update(long postId, long id, Comment comment) {
         return jdbcTemplate.query("""
                           update comments
                           set text = ?
                         where id = ?
+                          and post_id = ?
                         returning id, post_id, text, created_at""",
                 COMMENT_ROW_MAPPER,
                 comment.getText(),
-                id).stream().findFirst();
+                id,
+                postId).stream().findFirst();
     }
 
     @Override
-    public int deleteById(long id) {
-        return jdbcTemplate.update("delete from comments where id = ?", id);
+    public int deleteById(long postId, long id) {
+        return jdbcTemplate.update("""
+                        delete
+                          from comments
+                         where id = ?
+                           and post_id = ?""",
+                id,
+                postId);
     }
 }

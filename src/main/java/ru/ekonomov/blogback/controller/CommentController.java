@@ -1,5 +1,6 @@
 package ru.ekonomov.blogback.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.ekonomov.blogback.model.dto.CommentResponse;
@@ -27,25 +28,26 @@ public class CommentController {
     @GetMapping("/{postId}/comments/{id}")
     public CommentResponse findCommentById(@PathVariable long postId,
                                            @PathVariable long id) {
-        return commentService.findById(id);
+        return commentService.findById(postId, id);
     }
 
     @PostMapping("/{postId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
-    public CommentResponse createComment(@PathVariable long postId, @RequestBody CreateCommentRequest request) {
+    public CommentResponse createComment(@PathVariable long postId,
+                                         @Valid @RequestBody CreateCommentRequest request) {
         return commentService.create(postId, request);
     }
 
     @PutMapping("/{postId}/comments/{id}")
     public CommentResponse updateComment(@PathVariable long postId,
                                          @PathVariable long id,
-                                         @RequestBody EditCommentRequest request) {
-        return commentService.update(id, request);
+                                         @Valid @RequestBody EditCommentRequest request) {
+        return commentService.update(postId, id, request);
     }
 
     @DeleteMapping("/{postId}/comments/{id}")
     public void deleteComment(@PathVariable long postId,
                               @PathVariable long id) {
-        commentService.delete(id);
+        commentService.delete(postId, id);
     }
 }

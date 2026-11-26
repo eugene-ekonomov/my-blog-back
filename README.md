@@ -16,25 +16,36 @@
 - Docker
 
 ## Сборка и запуск
+
+```bash
+docker compose down
+mvn clean package
+docker compose up --build --wait -d
+docker logs -f my-blog-back-container
+```
+
+## Вход в БД в докере
+```bash
+docker exec -it blog-db psql -U blog_user -d blog
+```
+
+## Тесты
+
+```bash
+mvn clean test
+```
+
+Интеграционные тесты (DAO и MVC) поднимают реальный PostgreSQL через Testcontainers, поэтому нужен запущенный Docker.
+Юнит-тесты сервисов работают на Mockito и Docker не требуют.
+
+## Осторожно! Сборка и запуск с удалением тома базы данных, только для удобства разработки!
+
 ```bash 
 docker compose down -v
 mvn clean package
 docker compose up --build --wait -d
 docker logs -f my-blog-back-container
 ```
-```bash
-docker compose down
-```
-
-```bash
-docker exec -it blog-db psql -U blog_user -d blog
-```
-
-## Тесты
-```bash
-mvn clean test
-```
-Интеграционные тесты (DAO и MVC) поднимают реальный PostgreSQL через Testcontainers, поэтому нужен запущенный Docker. Юнит-тесты сервисов работают на Mockito и Docker не требуют.
 
 ## Деплой в сервлет-контейнер
 `mvn clean package` собирает `target/ROOT.war`. Запуск в Tomcat описан в `Dockerfile` (`tomcat:11-jdk21`): 

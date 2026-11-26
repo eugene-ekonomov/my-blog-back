@@ -37,7 +37,7 @@ class JdbcTemplateCommentRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByIdIfEmpty() {
-        var results = commentRepository.findById(42L);
+        var results = commentRepository.findById(7L, 42L);
         assertEquals(Optional.empty(), results);
     }
 
@@ -74,13 +74,24 @@ class JdbcTemplateCommentRepositoryTest extends AbstractIntegrationTest {
         assertNotNull(result.get(1).getCreatedAt());
         assertNotNull(result.get(1).getId());
 
-        var comment2Result = commentRepository.findById(comment2Db.getId())
+        var comment2Result = commentRepository.findById(post1Id, comment2Db.getId())
                 .orElseThrow(() -> new AssertionError("comment not found"));
         assertEquals(comment2.getText(), comment2Result.getText());
         assertEquals(comment2.getPostId(), comment2Result.getPostId());
 
         var result2 = commentRepository.findAllByPostId(post2Id);
         assertEquals(3, result2.size());
+    }
+
+    @Test
+    void findWithWrongPostId() {
+        var post = new Post("Title 1", "text 1", List.of("tag1", "tag2"));
+        var postId = postRepository.create(post).getId();
+        var comment = new Comment(postId, "first comment");
+        var commentId = commentRepository.create(postId, comment).getId();
+
+        assertEquals(Optional.empty(), commentRepository.findById(7L, commentId));
+
     }
 
     @Test
@@ -97,12 +108,12 @@ class JdbcTemplateCommentRepositoryTest extends AbstractIntegrationTest {
         assertEquals(3, postRepository.findById(post1Id)
                 .orElseThrow(() -> new AssertionError("post not found"))
                 .getCommentsCount());
-        commentRepository.deleteById(comment2Id);
-        commentRepository.deleteById(comment3Id);
+        commentRepository.deleteById(post1Id, comment2Id);
+        commentRepository.deleteById(post1Id, comment3Id);
         assertEquals(1, postRepository.findById(post1Id)
                 .orElseThrow(() -> new AssertionError("post not found"))
                 .getCommentsCount());
-        commentRepository.deleteById(comment1Id);
+        commentRepository.deleteById(post1Id, comment1Id);
         assertEquals(0, postRepository.findById(post1Id)
                 .orElseThrow(() -> new AssertionError("post not found"))
                 .getCommentsCount());
@@ -119,15 +130,26 @@ class JdbcTemplateCommentRepositoryTest extends AbstractIntegrationTest {
         var comment2Db = commentRepository.create(post1Id, comment2);
 
         var comment2new = new Comment(post1Id, "second comment modified");
-        assertEquals(comment2new.getText(), commentRepository.update(comment2Db.getId(), comment2new)
+        assertEquals(comment2new.getText(), commentRepository.update(post1Id, comment2Db.getId(), comment2new)
                 .orElseThrow(() -> new AssertionError("comment not found"))
                 .getText());
     }
 
     @Test
+    void updateWithWrongPostId() {
+        var post = new Post("Title 1", "text 1", List.of("tag1", "tag2"));
+        var postId = postRepository.create(post).getId();
+        var comment = new Comment(postId, "second comment");
+        var commentDb = commentRepository.create(postId, comment);
+
+        var commentUpdate = new Comment(postId, "second comment modified");
+        assertEquals(Optional.empty(), commentRepository.update(7L, commentDb.getId(), commentUpdate));
+    }
+
+    @Test
     void updateIfCommentDoesntExist() {
         var comment = new Comment(42L, "some text");
-        assertEquals(Optional.empty(), commentRepository.update(42L, comment));
+        assertEquals(Optional.empty(), commentRepository.update(7L, 42L, comment));
     }
 
     @Test
@@ -141,20 +163,30 @@ class JdbcTemplateCommentRepositoryTest extends AbstractIntegrationTest {
         var comment3 = new Comment(post1Id, "third comment");
         commentRepository.create(post1Id, comment3);
 
-        var result = commentRepository.findById(comment2Db.getId())
+        var result = commentRepository.findById(post1Id, comment2Db.getId())
                 .orElseThrow(() -> new AssertionError("comment not found"));
 
         assertEquals("second comment", result.getText());
 
-        assertEquals(1, commentRepository.deleteById(comment2Db.getId()));
+        assertEquals(1, commentRepository.deleteById(post1Id, comment2Db.getId()));
 
-        assertEquals(Optional.empty(), commentRepository.findById(comment2Db.getId()));
+        assertEquals(Optional.empty(), commentRepository.findById(post1Id, comment2Db.getId()));
 
         assertEquals(2, commentRepository.findAllByPostId(post1Id).size());
     }
 
     @Test
+    void deleteByIdWithWrongPostId() {
+        var post = new Post("Title 1", "text 1", List.of("tag1", "tag2"));
+        var postId = postRepository.create(post).getId();
+        var comment = new Comment(postId, "first comment");
+        var commentDb = commentRepository.create(postId, comment);
+
+        assertEquals(0, commentRepository.deleteById(7L, commentDb.getId()));
+    }
+
+    @Test
     void deleteIfCommentDoesntExist() {
-        assertEquals(0, commentRepository.deleteById(42L));
+        assertEquals(0, commentRepository.deleteById(7L, 42L));
     }
 }
